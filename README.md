@@ -1,20 +1,48 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Project Lifecycle Generator
+
+A secure, lightweight web application that automatically creates the first draft for a project lifecycle based on a Project Charter. It extracts relevant information, analyzes the project, and decides the best approach (PMI Waterfall, Agile, or Hybrid) according to industry standards.
+
+## Features
+
+- **Security Priority**: All LLM API calls are handled server-side to prevent API key leakage.
+- **Methodology Decision Engine**: Automatically selects the most suitable project approach.
+- **Modular Generation**: Creates drafts for Initiation, Planning, WBS, Resource Requirements, Expenses, and Risk/Issue Logs.
+- **User Friendly**: Simple, intuitive dashboard designed for all users.
+
+## Prerequisites
+
+- Node.js installed.
+- An OpenAI API Key (optional for testing, as the app includes a mock mode).
 
 ## Getting Started
 
-First, run the development server:
+1. **Install Dependencies**:
+   ```bash
+   npm install
+   ```
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+2. **Set up Environment Variables**:
+   Copy the `.env.example` file to `.env` and add your API keys if available.
+   ```bash
+   cp .env.example .env
+   ```
+   *Note: If no API key is provided, the application will run in **Mock Mode** with sample data for demonstration.*
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+3. **Run the Development Server**:
+   ```bash
+   npm run dev
+   ```
+
+4. **Open the App**:
+   Navigate to [http://localhost:3000](http://localhost:3000) in your browser.
+
+## Project Structure
+
+- `src/app`: Next.js pages and API routes.
+- `src/components`: UI components.
+- `src/services`: Core logic and LLM integration.
+- `src/lib`: API utilities.
+- `src/types`: TypeScript definitions.
 
 You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
 
