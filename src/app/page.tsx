@@ -51,8 +51,9 @@ export default function Home() {
           <h2 className="text-2xl font-bold mb-6 text-gray-800">Project Charter</h2>
           <form onSubmit={handleSubmit} className="space-y-6">
             <div>
-              <label className="block text-sm font-medium text-gray-700">Project Title</label>
+              <label htmlFor="title" className="block text-sm font-medium text-gray-700">Project Title</label>
               <input
+                id="title"
                 type="text"
                 required
                 className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm p-2 border"
@@ -62,8 +63,9 @@ export default function Home() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700">Description</label>
+              <label htmlFor="description" className="block text-sm font-medium text-gray-700">Description</label>
               <textarea
+                id="description"
                 required
                 className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm p-2 border"
                 rows={3}
@@ -72,24 +74,83 @@ export default function Home() {
               />
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Objectives</label>
-              {charter.objectives.map((obj, i) => (
-                <input
-                  key={i}
-                  type="text"
-                  className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm p-2 border mb-2"
-                  value={obj}
-                  onChange={(e) => handleArrayChange("objectives", i, e.target.value)}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Objectives</label>
+                {charter.objectives.map((obj, i) => (
+                  <input
+                    key={i}
+                    type="text"
+                    className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm p-2 border mb-2"
+                    value={obj}
+                    onChange={(e) => handleArrayChange("objectives", i, e.target.value)}
+                  />
+                ))}
+                <button
+                  type="button"
+                  onClick={() => addArrayItem("objectives")}
+                  className="text-xs text-indigo-600 hover:text-indigo-500"
+                >
+                  + Add Objective
+                </button>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Initial Stakeholders</label>
+                {charter.stakeholders.map((s, i) => (
+                  <input
+                    key={i}
+                    type="text"
+                    className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm p-2 border mb-2"
+                    value={s}
+                    onChange={(e) => handleArrayChange("stakeholders", i, e.target.value)}
+                  />
+                ))}
+                <button
+                  type="button"
+                  onClick={() => addArrayItem("stakeholders")}
+                  className="text-xs text-indigo-600 hover:text-indigo-500"
+                >
+                  + Add Stakeholder
+                </button>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <label htmlFor="scope" className="block text-sm font-medium text-gray-700">Scope</label>
+                <textarea
+                  id="scope"
+                  className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm p-2 border"
+                  rows={2}
+                  value={charter.scope}
+                  onChange={(e) => handleInputChange("scope", e.target.value)}
+                  placeholder="In-scope/Out-of-scope"
                 />
-              ))}
-              <button
-                type="button"
-                onClick={() => addArrayItem("objectives")}
-                className="text-sm text-indigo-600 hover:text-indigo-500"
-              >
-                + Add Objective
-              </button>
+              </div>
+              <div>
+                <label htmlFor="constraints" className="block text-sm font-medium text-gray-700">Constraints</label>
+                <textarea
+                  id="constraints"
+                  className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm p-2 border"
+                  rows={2}
+                  value={charter.constraints}
+                  onChange={(e) => handleInputChange("constraints", e.target.value)}
+                  placeholder="Budget, Time, Resources"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label htmlFor="assumptions" className="block text-sm font-medium text-gray-700">Assumptions</label>
+              <textarea
+                id="assumptions"
+                className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm p-2 border"
+                rows={2}
+                value={charter.assumptions}
+                onChange={(e) => handleInputChange("assumptions", e.target.value)}
+                placeholder="Key assumptions about the project..."
+              />
             </div>
 
             <button

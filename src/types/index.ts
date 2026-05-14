@@ -6,8 +6,8 @@ export interface ProjectCharter {
   objectives: string[];
   stakeholders: string[];
   scope: string;
-  constraints: string[];
-  assumptions: string[];
+  constraints: string;
+  assumptions: string;
 }
 
 export interface ResourceRequirement {

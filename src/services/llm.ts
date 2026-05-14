@@ -1,4 +1,5 @@
 import OpenAI from 'openai';
+import { llmConfig } from '../config/llmConfig';
 
 const getOpenAIClient = () => {
   const apiKey = process.env.OPENAI_API_KEY;
@@ -8,25 +9,52 @@ const getOpenAIClient = () => {
   return new OpenAI({ apiKey });
 };
 
+// Placeholder for Anthropic client
+const getAnthropicClient = () => {
+  const apiKey = process.env.ANTHROPIC_API_KEY;
+  if (!apiKey || apiKey === 'your_anthropic_api_key_here') {
+    return null;
+  }
+  // In a real implementation, you'd import and initialize the Anthropic SDK here
+  return null;
+};
+
 export async function callLLM(prompt: string, systemMessage: string = "You are a senior project management consultant.") {
   try {
-    const openai = getOpenAIClient();
-
-    if (!openai) {
-      console.warn('OpenAI API key is not set. Returning mock data.');
+    // If provider is explicitly set to mock, or if we're in development without keys
+    if (llmConfig.provider === 'mock') {
+      console.info('Using mock LLM provider as configured.');
       return mockLLMResponse(prompt);
     }
 
-    const response = await openai.chat.completions.create({
-      model: "gpt-4-turbo-preview",
-      messages: [
-        { role: "system", content: systemMessage },
-        { role: "user", content: prompt }
-      ],
-      response_format: { type: "json_object" },
-    });
+    if (llmConfig.provider === 'openai') {
+      const openai = getOpenAIClient();
+      if (!openai) {
+        console.warn('OpenAI API key is not set. Falling back to mock data.');
+        return mockLLMResponse(prompt);
+      }
 
-    return JSON.parse(response.choices[0].message.content || '{}');
+      const response = await openai.chat.completions.create({
+        model: llmConfig.model,
+        messages: [
+          { role: "system", content: systemMessage },
+          { role: "user", content: prompt }
+        ],
+        response_format: { type: "json_object" },
+        temperature: llmConfig.temperature,
+        max_tokens: llmConfig.maxTokens,
+      });
+
+      return JSON.parse(response.choices[0].message.content || '{}');
+    }
+
+    if (llmConfig.provider === 'anthropic') {
+      // This is a placeholder for Anthropic implementation
+      console.warn('Anthropic provider selected but not fully implemented. Falling back to mock.');
+      return mockLLMResponse(prompt);
+    }
+
+    throw new Error(`Unsupported LLM provider: ${llmConfig.provider}`);
   } catch (error) {
     console.error('Error calling LLM:', error);
     throw new Error('Failed to communicate with LLM service');
@@ -69,6 +97,6 @@ function mockLLMResponse(prompt: string) {
   }
   return {
     mocked: true,
-    message: "This is a mocked response because no API key was provided.",
+    message: "This is a mocked response because no API key was provided or provider was set to mock.",
   };
 }

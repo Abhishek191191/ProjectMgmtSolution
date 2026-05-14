@@ -8,8 +8,8 @@ export const INITIAL_CHARTER: ProjectCharter = {
   objectives: [''],
   stakeholders: [''],
   scope: '',
-  constraints: [''],
-  assumptions: [''],
+  constraints: '',
+  assumptions: '',
 };
 
 export async function generateProjectLifecycle(charter: ProjectCharter): Promise<ProjectLifecycle> {

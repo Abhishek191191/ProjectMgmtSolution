@@ -11,7 +11,7 @@ export async function decideMethodology(charter: ProjectCharter): Promise<Projec
     Description: ${charter.description}
     Objectives: ${charter.objectives.join(', ')}
     Scope: ${charter.scope}
-    Constraints: ${charter.constraints.join(', ')}
+    Constraints: ${charter.constraints}
   `;
 
   const result = await callLLM(prompt, "You are an expert in PMI standards and Agile methodologies.");

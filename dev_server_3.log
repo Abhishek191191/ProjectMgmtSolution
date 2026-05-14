@@ -1,0 +1,29 @@
+
+> tmp-app@0.1.0 dev
+> next dev
+
+▲ Next.js 16.2.6 (Turbopack)
+- Local:         http://localhost:3000
+- Network:       http://192.168.0.2:3000
+✓ Ready in 1071ms
+
+ GET / 200 in 713ms (next.js: 413ms, application-code: 300ms)
+ GET / 200 in 154ms (next.js: 12ms, application-code: 142ms)
+Error in generate-lifecycle API: TypeError: charter.constraints.join is not a function
+    at decideMethodology (src/services/projectService.ts:14:40)
+    at generateFullLifecycle (src/services/projectService.ts:59:29)
+    at POST (src/app/api/generate-lifecycle/route.ts:14:50)
+  12 |     Objectives: ${charter.objectives.join(', ')}
+  13 |     Scope: ${charter.scope}
+> 14 |     Constraints: ${charter.constraints.join(', ')}
+     |                                        ^
+  15 |   `;
+  16 |
+  17 |   const result = await callLLM(prompt, "You are an expert in PMI standards and Agile metho...
+ POST /api/generate-lifecycle 500 in 632ms (next.js: 206ms, application-code: 427ms)
+ GET / 200 in 359ms (next.js: 85ms, application-code: 275ms)
+OpenAI API key is not set. Falling back to mock data.
+OpenAI API key is not set. Falling back to mock data.
+OpenAI API key is not set. Falling back to mock data.
+OpenAI API key is not set. Falling back to mock data.
+ POST /api/generate-lifecycle 200 in 46ms (next.js: 17ms, application-code: 29ms)
