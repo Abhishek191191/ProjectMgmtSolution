@@ -1,17 +1,17 @@
 import { ProjectCharter, ProjectMethodology, ProjectLifecycle } from '@/types';
 import { callLLM } from './llm';
 
+function formatCharterForPrompt(charter: ProjectCharter): string {
+  return JSON.stringify(charter, null, 2);
+}
+
 export async function decideMethodology(charter: ProjectCharter): Promise<ProjectMethodology> {
   const prompt = `
     Analyze the following project charter and decide whether an Agile, Waterfall, or Hybrid methodology is most suitable.
     Provide your answer in JSON format with a "methodology" field and a "reasoning" field.
 
     Project Charter:
-    Title: ${charter.title}
-    Description: ${charter.description}
-    Objectives: ${charter.objectives.join(', ')}
-    Scope: ${charter.scope}
-    Constraints: ${charter.constraints}
+    ${formatCharterForPrompt(charter)}
   `;
 
   const result = await callLLM(prompt, "You are an expert in PMI standards and Agile methodologies.");
@@ -25,7 +25,9 @@ export async function generateInitiationChunk(charter: ProjectCharter) {
     2. High-level project objectives.
     3. Success criteria.
 
-    Project Charter: ${JSON.stringify(charter)}
+    Project Charter:
+    ${formatCharterForPrompt(charter)}
+
     Return JSON format.
   `;
   return await callLLM(prompt);
@@ -39,7 +41,9 @@ export async function generatePlanningChunk(charter: ProjectCharter, methodology
     3. Resource requirements.
     4. Estimated expenses.
 
-    Project Charter: ${JSON.stringify(charter)}
+    Project Charter:
+    ${formatCharterForPrompt(charter)}
+
     Return JSON format matching the ProjectLifecycle type structure.
   `;
   return await callLLM(prompt);
@@ -48,7 +52,8 @@ export async function generatePlanningChunk(charter: ProjectCharter, methodology
 export async function generateLogsChunk(charter: ProjectCharter) {
   const prompt = `
     Identify potential risks and common issues for the following project:
-    ${JSON.stringify(charter)}
+    Project Charter:
+    ${formatCharterForPrompt(charter)}
 
     Return a JSON object with "risks" (array of RiskLogEntry) and "issues" (array of IssueLogEntry).
   `;
