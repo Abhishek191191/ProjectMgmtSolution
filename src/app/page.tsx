@@ -32,8 +32,8 @@ export default function Home() {
     try {
       const result = await generateProjectLifecycle(charter);
       setLifecycle(result);
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
     } finally {
       setLoading(false);
     }

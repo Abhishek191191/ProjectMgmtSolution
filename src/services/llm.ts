@@ -9,15 +9,6 @@ const getOpenAIClient = () => {
   return new OpenAI({ apiKey });
 };
 
-// Placeholder for Anthropic client
-const getAnthropicClient = () => {
-  const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey || apiKey === 'your_anthropic_api_key_here') {
-    return null;
-  }
-  // In a real implementation, you'd import and initialize the Anthropic SDK here
-  return null;
-};
 
 export async function callLLM(prompt: string, systemMessage: string = "You are a senior project management consultant.") {
   try {
