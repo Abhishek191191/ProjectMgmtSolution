@@ -58,10 +58,12 @@ export async function generateLogsChunk(charter: ProjectCharter) {
 export async function generateFullLifecycle(charter: ProjectCharter): Promise<ProjectLifecycle> {
   const methodology = await decideMethodology(charter);
 
-  // In a real app, these could be parallelized
-  const planning = await generatePlanningChunk(charter, methodology);
-  const logs = await generateLogsChunk(charter);
-  const initiation = await generateInitiationChunk(charter);
+  // Parallelize independent LLM API calls
+  const [planning, logs, initiation] = await Promise.all([
+    generatePlanningChunk(charter, methodology),
+    generateLogsChunk(charter),
+    generateInitiationChunk(charter),
+  ]);
 
   return {
     methodology,
