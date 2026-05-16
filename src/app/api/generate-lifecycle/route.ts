@@ -1,22 +1,17 @@
 import { NextResponse } from 'next/server';
+import { ProjectCharter } from '@/types';
 import { generateFullLifecycle } from '@/services/projectService';
-import { validateProjectCharter } from '@/schemas/projectCharterSchema';
 
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { charter } = body;
+    const { charter }: { charter: ProjectCharter } = body;
 
-    const validation = validateProjectCharter(charter);
-
-    if (!validation.success) {
-      return NextResponse.json({
-        error: 'Invalid project charter',
-        details: validation.errors
-      }, { status: 400 });
+    if (!charter || !charter.title) {
+      return NextResponse.json({ error: 'Valid project charter is required' }, { status: 400 });
     }
 
-    const lifecycle = await generateFullLifecycle(validation.data!);
+    const lifecycle = await generateFullLifecycle(charter);
 
     return NextResponse.json(lifecycle);
   } catch (error) {

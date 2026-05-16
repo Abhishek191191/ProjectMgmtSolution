@@ -1,15 +1,33 @@
-"use strict";
-
 import { ProjectCharter, ProjectLifecycle } from '../types';
 
 export const INITIAL_CHARTER: ProjectCharter = {
-  title: '',
-  description: '',
-  objectives: [''],
-  stakeholders: [''],
-  scope: '',
-  constraints: '',
-  assumptions: '',
+  title: "",
+  organizationName: "",
+  industry: "Technology",
+  projectType: "IT Implementation",
+  description: "",
+  businessProblem: "",
+  expectedOutcomes: "",
+  objectives: [""],
+  sponsorName: "",
+  sponsorRole: "",
+  projectManagerName: "",
+  stakeholders: [{ name: "", department: "", interest: "Medium" }],
+  inScope: [""],
+  outOfScope: [""],
+  keyDeliverables: [""],
+  totalBudget: 0,
+  currency: "USD",
+  deadline: "",
+  teamSize: 1,
+  constraints: "",
+  assumptions: "",
+  knownRisks: [{ description: "", initialImpact: "Medium" }],
+  regulatoryRequirements: false,
+  externalVendorDependency: false,
+  previousSimilarProject: false,
+  preferredMethodology: "Let AI Decide",
+  reportingFrequency: "Weekly",
 };
 
 export async function generateProjectLifecycle(charter: ProjectCharter): Promise<ProjectLifecycle> {

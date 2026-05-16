@@ -1,23 +1,23 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   ChevronRight, ChevronLeft, Brain, LayoutDashboard, FileText,
   Users, Target, ListChecks, ShieldAlert, BarChart3, Download,
-  CheckCircle2, AlertTriangle, Info, Plus, Trash2, ExternalLink
+  CheckCircle2, AlertTriangle, Plus, Trash2,
+  Calendar
 } from "lucide-react";
 import {
   PieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip, Legend
 } from 'recharts';
-import { jsPDF } from "jspdf";
-import "jspdf-autotable";
+
 import * as XLSX from "xlsx";
+import { Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell, WidthType, HeadingLevel, AlignmentType } from "docx";
+import { saveAs } from "file-saver";
 
 import {
-  ProjectCharter, ProjectLifecycle, Industry, ProjectType,
-  InterestLevel, RiskImpact, ProjectMethodology, ProjectPhase,
-  WBSItem, ResourceEntry, CostEntry, RiskEntry, StakeholderCharter, RiskCharter
+  ProjectCharter, ProjectLifecycle, StakeholderCharter, RiskCharter
 } from "../types";
 
 // --- UI Components ---
@@ -87,7 +87,7 @@ export default function Home() {
     reportingFrequency: "Weekly",
   });
 
-  const handleInputChange = (field: keyof ProjectCharter, value: any) => {
+  const handleInputChange = (field: keyof ProjectCharter, value: string | number | boolean | string[] | StakeholderCharter[] | RiskCharter[]) => {
     setCharter(prev => ({ ...prev, [field]: value }));
   };
 
@@ -108,13 +108,13 @@ export default function Home() {
     setCharter(prev => ({ ...prev, [field]: newList }));
   };
 
-  const handleStakeholderChange = (index: number, field: keyof StakeholderCharter, value: any) => {
+  const handleStakeholderChange = (index: number, field: keyof StakeholderCharter, value: string | number | boolean | string[] | StakeholderCharter[] | RiskCharter[]) => {
     const newStakeholders = [...charter.stakeholders];
     newStakeholders[index] = { ...newStakeholders[index], [field]: value };
     setCharter(prev => ({ ...prev, stakeholders: newStakeholders }));
   };
 
-  const handleRiskChange = (index: number, field: keyof RiskCharter, value: any) => {
+  const handleRiskChange = (index: number, field: keyof RiskCharter, value: string | number | boolean | string[] | StakeholderCharter[] | RiskCharter[]) => {
     const newRisks = [...charter.knownRisks];
     newRisks[index] = { ...newRisks[index], [field]: value };
     setCharter(prev => ({ ...prev, knownRisks: newRisks }));
@@ -166,93 +166,126 @@ export default function Home() {
     }
   };
 
-  const exportPDF = () => {
+
+
+  const exportWord = async () => {
     if (!lifecycle) return;
-    const doc = new jsPDF() as any;
-    const pageWidth = doc.internal.pageSize.getWidth();
-    let y = 20;
 
-    // Title
-    doc.setFontSize(22);
-    doc.setTextColor(99, 102, 241); // Indigo
-    doc.text("Project Intelligence Report", 20, y);
-    y += 15;
+    const doc = new Document({
+      sections: [
+        {
+          properties: {},
+          children: [
+            new Paragraph({
+              text: "Project Intelligence Report",
+              heading: HeadingLevel.TITLE,
+              alignment: AlignmentType.CENTER,
+            }),
+            new Paragraph({
+              children: [
+                new TextRun({
+                  text: `Project: ${charter.title}`,
+                  bold: true,
+                  size: 28,
+                }),
+              ],
+              spacing: { before: 400, after: 200 },
+            }),
+            new Paragraph({
+              text: `Organization: ${charter.organizationName}`,
+              spacing: { after: 400 },
+            }),
 
-    doc.setFontSize(14);
-    doc.setTextColor(30, 41, 59);
-    doc.text(`Project: ${charter.title}`, 20, y);
-    y += 8;
-    doc.text(`Organization: ${charter.organizationName}`, 20, y);
-    y += 12;
+            // Methodology
+            new Paragraph({ text: "1. Methodology", heading: HeadingLevel.HEADING_1 }),
+            new Paragraph({
+              children: [
+                new TextRun({ text: "Selected Approach: ", bold: true }),
+                new TextRun(lifecycle.methodology.methodology),
+              ],
+              spacing: { before: 200 },
+            }),
+            new Paragraph({
+              text: lifecycle.methodology.reasoning,
+              spacing: { before: 100, after: 400 },
+            }),
 
-    // Methodology
-    doc.setFontSize(16);
-    doc.setTextColor(99, 102, 241);
-    doc.text("1. Methodology", 20, y);
-    y += 10;
-    doc.setFontSize(10);
-    doc.setTextColor(71, 85, 105);
-    doc.text(`Selected Approach: ${lifecycle.methodology.methodology} (${lifecycle.methodology.confidence} Confidence)`, 20, y);
-    y += 6;
-    const reasoningLines = doc.splitTextToSize(lifecycle.methodology.reasoning, pageWidth - 40);
-    doc.text(reasoningLines, 20, y);
-    y += (reasoningLines.length * 5) + 10;
+            // Executive Summary
+            new Paragraph({ text: "2. Executive Summary", heading: HeadingLevel.HEADING_1 }),
+            new Paragraph({
+              text: lifecycle.executiveSummary.overview,
+              spacing: { before: 200, after: 400 },
+            }),
 
-    // Summary
-    doc.setFontSize(16);
-    doc.setTextColor(99, 102, 241);
-    doc.text("2. Executive Summary", 20, y);
-    y += 10;
-    doc.setFontSize(10);
-    doc.setTextColor(71, 85, 105);
-    const summaryLines = doc.splitTextToSize(lifecycle.executiveSummary.overview, pageWidth - 40);
-    doc.text(summaryLines, 20, y);
-    y += (summaryLines.length * 5) + 10;
+            // Initiation - Stakeholders Table
+            new Paragraph({ text: "3. Stakeholder Register", heading: HeadingLevel.HEADING_1 }),
+            new Table({
+              width: { size: 100, type: WidthType.PERCENTAGE },
+              rows: [
+                new TableRow({
+                  children: ["Stakeholder", "Role", "Influence", "Strategy"].map(
+                    (h) => new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: h, bold: true })] })] })
+                  ),
+                }),
+                ...lifecycle.initiation.stakeholderRegister.map(
+                  (s) =>
+                    new TableRow({
+                      children: [s.name, s.role, s.influence, s.engagementStrategy].map(
+                        (val) => new TableCell({ children: [new Paragraph({ text: val })] })
+                      ),
+                    })
+                ),
+              ],
+            }),
 
-    // Initiation Table
-    doc.setFontSize(16);
-    doc.setTextColor(99, 102, 241);
-    doc.text("3. Initiation Details", 20, y);
-    y += 10;
-    doc.autoTable({
-      startY: y,
-      head: [['Stakeholder', 'Role', 'Influence', 'Strategy']],
-      body: lifecycle.initiation.stakeholderRegister.map(s => [s.name, s.role, s.influence, s.engagementStrategy]),
-      theme: 'grid',
-      headStyles: { fillColor: [99, 102, 241] }
+            // WBS Table
+            new Paragraph({ text: "4. Work Breakdown Structure (WBS)", heading: HeadingLevel.HEADING_1, spacing: { before: 400 } }),
+            new Table({
+              width: { size: 100, type: WidthType.PERCENTAGE },
+              rows: [
+                new TableRow({
+                  children: ["ID", "Task", "Duration", "Owner"].map(
+                    (h) => new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: h, bold: true })] })] })
+                  ),
+                }),
+                ...lifecycle.wbs.items.map(
+                  (item) =>
+                    new TableRow({
+                      children: [item.id, item.task, item.duration, item.owner].map(
+                        (val) => new TableCell({ children: [new Paragraph({ text: val })] })
+                      ),
+                    })
+                ),
+              ],
+            }),
+
+            // Risks Table
+            new Paragraph({ text: "5. Risk Register", heading: HeadingLevel.HEADING_1, spacing: { before: 400 } }),
+            new Table({
+              width: { size: 100, type: WidthType.PERCENTAGE },
+              rows: [
+                new TableRow({
+                  children: ["ID", "Risk", "Rating", "Mitigation"].map(
+                    (h) => new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: h, bold: true })] })] })
+                  ),
+                }),
+                ...lifecycle.risks.register.map(
+                  (r) =>
+                    new TableRow({
+                      children: [r.id, r.risk, r.rating, r.mitigation].map(
+                        (val) => new TableCell({ children: [new Paragraph({ text: val })] })
+                      ),
+                    })
+                ),
+              ],
+            }),
+          ],
+        },
+      ],
     });
-    y = doc.lastAutoTable.finalY + 15;
 
-    // WBS Table
-    if (y > 230) { doc.addPage(); y = 20; }
-    doc.setFontSize(16);
-    doc.setTextColor(99, 102, 241);
-    doc.text("4. Work Breakdown Structure", 20, y);
-    y += 10;
-    doc.autoTable({
-      startY: y,
-      head: [['ID', 'Task', 'Duration', 'Effort', 'Owner']],
-      body: lifecycle.wbs.items.map(i => [i.id, i.task, i.duration, i.effort, i.owner]),
-      theme: 'striped',
-      headStyles: { fillColor: [99, 102, 241] }
-    });
-    y = doc.lastAutoTable.finalY + 15;
-
-    // Risk Table
-    if (y > 230) { doc.addPage(); y = 20; }
-    doc.setFontSize(16);
-    doc.setTextColor(99, 102, 241);
-    doc.text("5. Risk Register", 20, y);
-    y += 10;
-    doc.autoTable({
-      startY: y,
-      head: [['ID', 'Risk', 'Rating', 'Mitigation']],
-      body: lifecycle.risks.register.map(r => [r.id, r.risk, r.rating, r.mitigation]),
-      theme: 'grid',
-      headStyles: { fillColor: [239, 68, 68] }
-    });
-
-    doc.save(`${charter.title.replace(/\s+/g, '_')}_Full_Plan.pdf`);
+    const blob = await Packer.toBlob(doc);
+    saveAs(blob, `${charter.title.replace(/\s+/g, "_")}_Project_Plan.docx`);
   };
 
   const exportExcel = () => {
@@ -699,7 +732,7 @@ export default function Home() {
                   <option value="PRINCE2">PRINCE2</option>
                   <option value="SAFe">SAFe</option>
                 </select>
-                <p className="mt-2 text-xs text-slate-500">Choosing "Let AI Decide" allows the engine to pick based on project complexity and industry.</p>
+                <p className="mt-2 text-xs text-slate-500">Choosing &quot;Let AI Decide&quot; allows the engine to pick based on project complexity and industry.</p>
               </div>
               <div>
                 <label className="block text-sm font-medium text-slate-400 mb-2">Reporting Frequency</label>
@@ -745,6 +778,7 @@ export default function Home() {
       { id: "resources", label: "Resources & Budget", icon: Users },
       { id: "risks", label: "Risk Register", icon: ShieldAlert },
       { id: "quality", label: "Quality Plan", icon: BarChart3 },
+      { id: "gantt", label: "Gantt Chart", icon: Calendar },
     ];
 
     return (
@@ -807,7 +841,7 @@ export default function Home() {
                   <Card title="Executive Overview">
                     <div className="flex gap-4">
                        <div className="w-1 bg-indigo-500 rounded-full" />
-                       <p className="text-slate-300 leading-relaxed italic">"{lifecycle.executiveSummary.overview}"</p>
+                       <p className="text-slate-300 leading-relaxed italic">&quot;{lifecycle.executiveSummary.overview}&quot;</p>
                     </div>
                   </Card>
 
@@ -1114,10 +1148,10 @@ export default function Home() {
 
                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                      <Card title="Budget Phasing Strategy">
-                        <p className="text-sm text-slate-300 leading-relaxed italic">"{lifecycle.costs.budgetPhasing}"</p>
+                        <p className="text-sm text-slate-300 leading-relaxed italic">&quot;{lifecycle.costs.budgetPhasing}&quot;</p>
                      </Card>
                      <Card title="Procurement Plan">
-                        <p className="text-sm text-slate-300 leading-relaxed italic">"{lifecycle.costs.procurementPlan}"</p>
+                        <p className="text-sm text-slate-300 leading-relaxed italic">&quot;{lifecycle.costs.procurementPlan}&quot;</p>
                      </Card>
                    </div>
                 </div>
@@ -1229,6 +1263,74 @@ export default function Home() {
                 </div>
               )}
 
+              {activeTab === "gantt" && (
+                <div className="space-y-8">
+                  <Card title="Visual Project Timeline (Gantt Chart)">
+                    <div className="overflow-x-auto pb-4">
+                      <div className="min-w-[800px] bg-slate-900/50 rounded-lg p-6">
+                        {/* Timeline Header (Months) */}
+                        <div className="grid grid-cols-[repeat(13,minmax(0,1fr))] gap-0 border-b border-white/10 mb-4 pb-2">
+                          <div className="col-span-3 text-xs font-bold text-slate-500 uppercase">Task Name</div>
+                          {[...Array(10)].map((_, i) => (
+                            <div key={i} className="text-center text-[10px] font-bold text-slate-600 uppercase border-l border-white/5">
+                              Month {i + 1}
+                            </div>
+                          ))}
+                        </div>
+
+                        {/* Tasks */}
+                        <div className="space-y-3">
+                          {lifecycle.wbs.items.map((task, idx) => {
+                            const startOffset = Math.min(idx, 8);
+                            const width = Math.max(1, Math.min(2, 10 - startOffset));
+
+                            return (
+                              <div key={task.id} className="grid grid-cols-[repeat(13,minmax(0,1fr))] items-center gap-0 group">
+                                <div className="col-span-3 pr-4">
+                                  <p className={`text-xs truncate ${task.level === 1 ? 'font-bold text-white' : 'text-slate-400 pl-4'}`}>
+                                    {task.task}
+                                  </p>
+                                </div>
+                                <div className="col-span-10 h-8 relative flex items-center">
+                                  <div className="absolute inset-0 grid grid-cols-10 pointer-events-none">
+                                    {[...Array(10)].map((_, i) => (
+                                      <div key={i} className="border-l border-white/5 h-full" />
+                                    ))}
+                                  </div>
+                                  <motion.div
+                                    initial={{ width: 0, opacity: 0 }}
+                                    animate={{ width: `${(width / 10) * 100}%`, opacity: 1 }}
+                                    transition={{ duration: 0.8, delay: idx * 0.1 }}
+                                    style={{ marginLeft: `${(startOffset / 10) * 100}%` }}
+                                    className={`h-6 rounded-md shadow-lg flex items-center px-2 cursor-pointer transition-all hover:brightness-110 relative z-10
+                                      ${lifecycle.wbs.criticalPath.includes(task.id) ? 'bg-amber-500 shadow-amber-500/20' : 'bg-indigo-600 shadow-indigo-500/20'}
+                                    `}
+                                  >
+                                    <span className="text-[9px] font-black text-white uppercase truncate">
+                                      {task.duration}
+                                    </span>
+                                  </motion.div>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="mt-6 flex items-center gap-6 justify-center">
+                       <div className="flex items-center gap-2">
+                          <div className="w-3 h-3 rounded-sm bg-indigo-600" />
+                          <span className="text-xs text-slate-400 font-medium">Standard Task</span>
+                       </div>
+                       <div className="flex items-center gap-2">
+                          <div className="w-3 h-3 rounded-sm bg-amber-500" />
+                          <span className="text-xs text-slate-400 font-medium">Critical Path</span>
+                       </div>
+                    </div>
+                  </Card>
+                </div>
+              )}
+
               {activeTab === "quality" && (
                 <div className="space-y-8">
                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
@@ -1313,10 +1415,10 @@ export default function Home() {
                 <Download size={16} /> Excel
               </button>
               <button
-                onClick={exportPDF}
+                onClick={exportWord}
                 className="flex items-center gap-2 px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-sm font-medium transition-all shadow-lg shadow-indigo-600/20"
               >
-                <Download size={16} /> Export PDF
+                <FileText size={16} /> Export Word
               </button>
             </div>
           )}

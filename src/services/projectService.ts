@@ -1,6 +1,5 @@
 import { ProjectCharter, ProjectLifecycle, ProjectPhase, WBSItem, ResourceEntry, CostEntry, RiskEntry, QualityCheckpoint, ExecutiveSummary, StakeholderEntry } from '../types';
 import { callLLM } from './llm';
-import { BRAIN } from '../config/brain.config';
 
 function formatCharterForPrompt(charter: ProjectCharter): string {
   return JSON.stringify(charter, null, 2);
@@ -23,7 +22,8 @@ export async function decideMethodology(charter: ProjectCharter) {
     "whyNotAlternative": "string"
   }`;
 
-  return await callLLM(prompt, schema) as ProjectLifecycle['methodology'];
+  const res = await callLLM(prompt, schema);
+  return res as unknown as ProjectLifecycle['methodology'];
 }
 
 export async function generateExecutiveSummary(charter: ProjectCharter, methodology: string) {
@@ -43,10 +43,10 @@ export async function generateExecutiveSummary(charter: ProjectCharter, methodol
 
   const res = await callLLM(prompt, schema);
   return {
-    overview: res.executiveSummary || res.overview || '',
-    healthScore: res.healthScore || 'Green',
-    healthReasoning: res.healthReasoning || '',
-    nextActions: res.top3NextActions || res.nextActions || [],
+    overview: (res.executiveSummary as string) || (res.overview as string) || '',
+    healthScore: (res.healthScore as ExecutiveSummary['healthScore']) || 'Green',
+    healthReasoning: (res.healthReasoning as string) || '',
+    nextActions: (res.top3NextActions as string[]) || (res.nextActions as string[]) || [],
     confidenceLevel: 'High'
   } as ExecutiveSummary;
 }
@@ -76,10 +76,10 @@ export async function generateInitiation(charter: ProjectCharter) {
 
   const res = await callLLM(prompt, schema);
   return {
-    smartObjectives: res.smartObjectives || [],
-    stakeholderRegister: res.stakeholderRegister || [],
-    successCriteria: res.successCriteria || [],
-    governanceStructure: res.governanceStructure || {
+    smartObjectives: (res.smartObjectives as string[]) || [],
+    stakeholderRegister: (res.stakeholderRegister as StakeholderEntry[]) || [],
+    successCriteria: (res.successCriteria as string[]) || [],
+    governanceStructure: (res.governanceStructure as ProjectLifecycle["initiation"]["governanceStructure"]) || {
       approvalAuthority: '',
       escalationPath: '',
       steeringCommittee: ''
@@ -108,7 +108,7 @@ export async function generatePhases(charter: ProjectCharter, methodology: strin
   }`;
 
   const res = await callLLM(prompt, schema);
-  return (res.phases || []) as ProjectPhase[];
+  return (res.phases as ProjectPhase[]) || [];
 }
 
 export async function generateWBS(charter: ProjectCharter, phases: ProjectPhase[]) {
@@ -127,6 +127,7 @@ export async function generateWBS(charter: ProjectCharter, phases: ProjectPhase[
       "task": "string",
       "description": "string",
       "duration": "string",
+      "startDate": "string (YYYY-MM-DD)",
       "effort": "string",
       "owner": "string",
       "dependencies": ["string"]
@@ -138,10 +139,10 @@ export async function generateWBS(charter: ProjectCharter, phases: ProjectPhase[
 
   const res = await callLLM(prompt, schema);
   return {
-    items: res.wbs || [],
-    criticalPath: res.criticalPath || [],
-    totalDuration: res.totalDuration || '',
-    totalEffort: res.totalEffort || ''
+    items: (res.wbs as WBSItem[]) || [],
+    criticalPath: (res.criticalPath as string[]) || [],
+    totalDuration: (res.totalDuration as string) || '',
+    totalEffort: (res.totalEffort as string) || ''
   } as ProjectLifecycle['wbs'];
 }
 
@@ -175,12 +176,12 @@ export async function generateResourcesAndBudget(charter: ProjectCharter) {
 
   const res = await callLLM(prompt, schema);
   return {
-    resources: (res.resources || []) as ResourceEntry[],
+    resources: (res.resources as ResourceEntry[]) || [],
     costs: {
-      breakdown: (res.costBreakdown || []) as CostEntry[],
-      totalBudget: res.totalBudget || 0,
-      budgetPhasing: res.budgetPhasing || '',
-      procurementPlan: res.procurementPlan || ''
+      breakdown: (res.costBreakdown as CostEntry[]) || [],
+      totalBudget: (res.totalBudget as number) || 0,
+      budgetPhasing: (res.budgetPhasing as string) || '',
+      procurementPlan: (res.procurementPlan as string) || ''
     }
   };
 }
@@ -221,34 +222,27 @@ export async function generateRisksAndQuality(charter: ProjectCharter) {
   const res = await callLLM(prompt, schema);
   return {
     risks: {
-      register: (res.risks || []) as RiskEntry[],
-      top3CriticalRisks: (res.top3CriticalRisks || []) as string[],
-      immediateActions: (res.immediateActions || []) as string[]
+      register: (res.risks as RiskEntry[]) || [],
+      top3CriticalRisks: (res.top3CriticalRisks as string[]) || [],
+      immediateActions: (res.immediateActions as string[]) || []
     },
     quality: {
-      standards: (res.qualityStandards || []) as string[],
-      checkpoints: (res.qualityCheckpoints || []) as QualityCheckpoint[],
-      defectTolerance: res.defectTolerance || '',
-      testingApproach: res.testingApproach || ''
+      standards: (res.qualityStandards as string[]) || [],
+      checkpoints: (res.qualityCheckpoints as QualityCheckpoint[]) || [],
+      defectTolerance: (res.defectTolerance as string) || '',
+      testingApproach: (res.testingApproach as string) || ''
     }
   };
 }
 
 export async function generateFullLifecycle(charter: ProjectCharter): Promise<ProjectLifecycle> {
-  // 1. decideMethodology
   const methodology = await decideMethodology(charter);
 
-  // Parallel calls (2, 3, 6 from the instructions)
-  // Instructions say: Run calls 2, 3, 6 in parallel. Run 4 after 1. Run 5 after 4. Run 7 in parallel with 4.
-
-  // 4 and 7 in parallel after 1
   const [phases, risksAndQuality] = await Promise.all([
     generatePhases(charter, methodology.methodology),
     generateRisksAndQuality(charter)
   ]);
 
-  // 2, 3, 6, and 5 in parallel
-  // 5 depends on 4 (phases)
   const [execSummary, initiation, resAndBudget, wbs] = await Promise.all([
     generateExecutiveSummary(charter, methodology.methodology),
     generateInitiation(charter),

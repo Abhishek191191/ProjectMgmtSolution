@@ -6,12 +6,15 @@ function getClient() {
     return new OpenAI({ apiKey: BRAIN.apiKey });
   }
   if (BRAIN.provider === 'local') {
+    // OpenAI-compatible client pointed at local server (Ollama, LM Studio, etc.)
     return new OpenAI({
       apiKey: BRAIN.apiKey || 'local',
       baseURL: BRAIN.baseURL,
     });
   }
   if (BRAIN.provider === 'anthropic') {
+    // Use OpenAI-compatible interface via Anthropic's API
+    // Install @anthropic-ai/sdk if using native Anthropic SDK
     return new OpenAI({
       apiKey: BRAIN.apiKey,
       baseURL: 'https://api.anthropic.com/v1',
@@ -21,11 +24,11 @@ function getClient() {
   return null;
 }
 
-export async function callLLM(prompt: string, schema?: string): Promise<Record<string, any>> {
+export async function callLLM(prompt: string, schema?: string): Promise<Record<string, unknown>> {
   if (BRAIN.provider === 'mock') {
-    console.log(`[Mock LLM] Prompt received: ${prompt.substring(0, 100)}...`);
+    console.log(`[Mock LLM] Prompt received: \${prompt.substring(0, 100)}...`);
     const res = mockResponse(prompt);
-    console.log(`[Mock LLM] Returning keys: ${Object.keys(res).join(', ')}`);
+    console.log(`[Mock LLM] Returning keys: \${Object.keys(res).join(', ')}`);
     return res;
   }
 
@@ -33,7 +36,7 @@ export async function callLLM(prompt: string, schema?: string): Promise<Record<s
   if (!client) throw new Error('No valid AI provider configured.');
 
   const systemMsg = schema
-    ? `${BRAIN.systemPrompt}\n\nYou must respond with valid JSON matching this schema:\n${schema}`
+    ? `\${BRAIN.systemPrompt}\n\nYou must respond with valid JSON matching this schema:\n\${schema}`
     : BRAIN.systemPrompt;
 
   const response = await client.chat.completions.create({
@@ -50,11 +53,10 @@ export async function callLLM(prompt: string, schema?: string): Promise<Record<s
   return JSON.parse(response.choices[0].message.content || '{}');
 }
 
-function mockResponse(prompt: string): Record<string, any> {
+// Upgraded mock data matching full V2 output schema
+function mockResponse(prompt: string): Record<string, unknown> {
   const p = prompt.toLowerCase();
-
-  // 1. Methodology
-  if (p.includes('decide') && p.includes('methodology')) {
+  if (p.includes('methodology')) {
     return {
       methodology: 'Hybrid',
       confidence: 'High',
@@ -63,25 +65,17 @@ function mockResponse(prompt: string): Record<string, any> {
       whyNotAlternative: 'Compliance requirements demand upfront documentation not suited to pure Agile.'
     };
   }
-
-  // 2. Executive Summary
-  if (p.includes('executive summary')) {
+  if (p.includes('initiation') || p.includes('executive')) {
     return {
       executiveSummary: 'This project will modernize the organization\'s core systems over 12 months with a $500K investment, delivering measurable efficiency gains of 40%.',
       overview: 'This project will modernize the organization\'s core systems over 12 months with a $500K investment, delivering measurable efficiency gains of 40%.',
+      healthScore: 'Amber',
+      healthReasoning: 'Budget is adequate but timeline is aggressive given team size.',
       top3NextActions: [
         'Secure final approval of project budget',
         'Initiate recruitment for Technical Architect',
         'Schedule stakeholder kick-off meeting'
       ],
-      healthScore: 'Amber',
-      healthReasoning: 'Budget is adequate but timeline is aggressive given team size.'
-    };
-  }
-
-  // 3. Initiation
-  if (p.includes('initiation details')) {
-    return {
       smartObjectives: [
         'Migrate 100% of legacy HR data to cloud platform by Month 9 with zero data loss',
         'Reduce manual HR processing time by 40% within 3 months of go-live',
@@ -103,9 +97,25 @@ function mockResponse(prompt: string): Record<string, any> {
       }
     };
   }
-
-  // 4. Phases
-  if (p.includes('project phases')) {
+  if (p.includes('wbs') || p.includes('work breakdown')) {
+    return {
+      wbs: [
+{ id: '1', level: 1, task: 'Project Management', description: 'Overall project coordination and governance', duration: '52 weeks', startDate: '2024-01-01', effort: '416 hours', owner: 'Project Manager', dependencies: [] },
+        { id: '1.1', level: 2, task: 'Project Planning', description: 'Develop and maintain project plan', duration: '4 weeks', startDate: '2024-01-01', effort: '40 hours', owner: 'Project Manager', dependencies: [] },
+        { id: '1.2', level: 2, task: 'Stakeholder Management', description: 'Ongoing stakeholder communication', duration: '52 weeks', startDate: '2024-02-01', effort: '104 hours', owner: 'Project Manager', dependencies: ['1.1'] },
+        { id: '2', level: 1, task: 'Requirements & Design', description: 'Discovery, requirements, architecture', duration: '10 weeks', startDate: '2024-01-15', effort: '200 hours', owner: 'IT Lead', dependencies: ['1.1'] },
+        { id: '2.1', level: 2, task: 'Requirements Gathering', description: 'Workshops, interviews, documentation', duration: '4 weeks', startDate: '2024-01-15', effort: '80 hours', owner: 'Business Analyst', dependencies: [] },
+        { id: '2.2', level: 2, task: 'System Architecture', description: 'Technical design and approval', duration: '6 weeks', startDate: '2024-02-15', effort: '120 hours', owner: 'IT Lead', dependencies: ['2.1'] },
+        { id: '3', level: 1, task: 'Build & Configure', description: 'Platform setup, development, migration', duration: '12 weeks', startDate: '2024-04-01', effort: '800 hours', owner: 'IT Lead + Vendor', dependencies: ['2.2'] },
+        { id: '4', level: 1, task: 'Testing', description: 'SIT, UAT, performance testing', duration: '6 weeks', startDate: '2024-07-01', effort: '300 hours', owner: 'QA Lead', dependencies: ['3'] },
+        { id: '5', level: 1, task: 'Training & Go-Live', description: 'Training delivery and cutover', duration: '4 weeks', startDate: '2024-08-15', effort: '160 hours', owner: 'Project Manager', dependencies: ['4'] }
+      ],
+      criticalPath: ['2.1', '2.2', '3', '4', '5'],
+      totalDuration: '52 weeks',
+      totalEffort: '1876 hours'
+    };
+  }
+  if (p.includes('planning') || p.includes('phase')) {
     return {
       phases: [
         {
@@ -158,32 +168,39 @@ function mockResponse(prompt: string): Record<string, any> {
           deliverables: ['Training Materials', 'Go-live Report', 'Hypercare Log'],
           owner: 'Project Manager'
         }
-      ]
+      ],
+      communicationPlan: {
+        statusReports: 'Weekly — PM to all stakeholders every Friday',
+        steeringCommittee: 'Monthly — formal milestone review',
+        teamStandups: 'Daily — 15 min, PM + technical leads',
+        escalationSLA: 'P1 issues escalated within 2 hours, P2 within 24 hours'
+      },
+      changeManagementPlan: {
+        changeRequestProcess: 'Submit CR form → PM assesses impact → Sponsor approves if >$10K or >1 week',
+        approvalAuthority: 'PM: up to $5K / 2 days. Sponsor: up to $50K / 2 weeks. Executive: above that.',
+        changeFreeze: 'No changes accepted within 2 weeks of go-live date'
+      }
     };
   }
-
-  // 5. WBS
-  if (p.includes('hierarchical wbs')) {
+  if (p.includes('wbs') || p.includes('work breakdown')) {
     return {
       wbs: [
-        { id: '1', level: 1, task: 'Project Management', description: 'Overall project coordination and governance', duration: '52 weeks', effort: '416 hours', owner: 'Project Manager', dependencies: [] },
-        { id: '1.1', level: 2, task: 'Project Planning', description: 'Develop and maintain project plan', duration: '4 weeks', effort: '40 hours', owner: 'Project Manager', dependencies: [] },
-        { id: '1.2', level: 2, task: 'Stakeholder Management', description: 'Ongoing stakeholder communication', duration: '52 weeks', effort: '104 hours', owner: 'Project Manager', dependencies: ['1.1'] },
-        { id: '2', level: 1, task: 'Requirements & Design', description: 'Discovery, requirements, architecture', duration: '10 weeks', effort: '200 hours', owner: 'IT Lead', dependencies: ['1.1'] },
-        { id: '2.1', level: 2, task: 'Requirements Gathering', description: 'Workshops, interviews, documentation', duration: '4 weeks', effort: '80 hours', owner: 'Business Analyst', dependencies: [] },
-        { id: '2.2', level: 2, task: 'System Architecture', description: 'Technical design and approval', duration: '6 weeks', effort: '120 hours', owner: 'IT Lead', dependencies: ['2.1'] },
-        { id: '3', level: 1, task: 'Build & Configure', description: 'Platform setup, development, migration', duration: '12 weeks', effort: '800 hours', owner: 'IT Lead + Vendor', dependencies: ['2.2'] },
-        { id: '4', level: 1, task: 'Testing', description: 'SIT, UAT, performance testing', duration: '6 weeks', effort: '300 hours', owner: 'QA Lead', dependencies: ['3'] },
-        { id: '5', level: 1, task: 'Training & Go-Live', description: 'Training delivery and cutover', duration: '4 weeks', effort: '160 hours', owner: 'Project Manager', dependencies: ['4'] }
+{ id: '1', level: 1, task: 'Project Management', description: 'Overall project coordination and governance', duration: '52 weeks', startDate: '2024-01-01', effort: '416 hours', owner: 'Project Manager', dependencies: [] },
+        { id: '1.1', level: 2, task: 'Project Planning', description: 'Develop and maintain project plan', duration: '4 weeks', startDate: '2024-01-01', effort: '40 hours', owner: 'Project Manager', dependencies: [] },
+        { id: '1.2', level: 2, task: 'Stakeholder Management', description: 'Ongoing stakeholder communication', duration: '52 weeks', startDate: '2024-02-01', effort: '104 hours', owner: 'Project Manager', dependencies: ['1.1'] },
+        { id: '2', level: 1, task: 'Requirements & Design', description: 'Discovery, requirements, architecture', duration: '10 weeks', startDate: '2024-01-15', effort: '200 hours', owner: 'IT Lead', dependencies: ['1.1'] },
+        { id: '2.1', level: 2, task: 'Requirements Gathering', description: 'Workshops, interviews, documentation', duration: '4 weeks', startDate: '2024-01-15', effort: '80 hours', owner: 'Business Analyst', dependencies: [] },
+        { id: '2.2', level: 2, task: 'System Architecture', description: 'Technical design and approval', duration: '6 weeks', startDate: '2024-02-15', effort: '120 hours', owner: 'IT Lead', dependencies: ['2.1'] },
+        { id: '3', level: 1, task: 'Build & Configure', description: 'Platform setup, development, migration', duration: '12 weeks', startDate: '2024-04-01', effort: '800 hours', owner: 'IT Lead + Vendor', dependencies: ['2.2'] },
+        { id: '4', level: 1, task: 'Testing', description: 'SIT, UAT, performance testing', duration: '6 weeks', startDate: '2024-07-01', effort: '300 hours', owner: 'QA Lead', dependencies: ['3'] },
+        { id: '5', level: 1, task: 'Training & Go-Live', description: 'Training delivery and cutover', duration: '4 weeks', startDate: '2024-08-15', effort: '160 hours', owner: 'Project Manager', dependencies: ['4'] }
       ],
       criticalPath: ['2.1', '2.2', '3', '4', '5'],
       totalDuration: '52 weeks',
       totalEffort: '1876 hours'
     };
   }
-
-  // 6. Resources & Budget
-  if (p.includes('resource plan') || p.includes('cost breakdown')) {
+  if (p.includes('resource') || p.includes('cost') || p.includes('budget')) {
     return {
       resources: [
         { role: 'Project Manager', count: 1, allocation: '100%', phases: 'All phases', type: 'Internal', estimatedDailyRate: 800, skills: ['PMP', 'Stakeholder Management', 'Risk Management'] },
@@ -205,9 +222,7 @@ function mockResponse(prompt: string): Record<string, any> {
       procurementPlan: 'CloudHR Solutions contract to be signed by end of Phase 1. Infrastructure procurement in Phase 2.'
     };
   }
-
-  // 7. Risks & Quality
-  if (p.includes('risk register') || p.includes('quality plan')) {
+  if (p.includes('risk') || p.includes('quality')) {
     return {
       risks: [
         { id: 'R001', risk: 'Data migration failure or corruption', category: 'Technical', probability: 4, impact: 5, score: 20, rating: 'Critical', owner: 'IT Lead', mitigation: 'Run 3 parallel test migrations before production cutover. Validate with automated checksums.', contingency: 'Roll back to legacy system. Engage vendor emergency support.', triggers: 'Test migration error rate above 0.1%' },
@@ -234,6 +249,5 @@ function mockResponse(prompt: string): Record<string, any> {
       testingApproach: 'Unit → Integration → System → UAT → Performance → Security (pen test)'
     };
   }
-
   return { mocked: true, message: 'Mock response — set AI_PROVIDER in .env.local to use a real model.' };
 }

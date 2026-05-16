@@ -12,7 +12,7 @@ export const BRAIN = {
   // 'anthropic' → Anthropic API (Claude models)
   // 'local'     → Any local model via Ollama, LM Studio, Jan.ai etc.
   // 'mock'      → No API needed. Uses built-in sample data.
-  provider: (process.env.AI_PROVIDER as BrainProvider) || 'mock',
+  provider: (process.env.AI_PROVIDER as BrainProvider) || 'openai',
 
   // STEP 2: Set your API key (not needed for 'local' or 'mock')
   apiKey: process.env.AI_API_KEY || '',
